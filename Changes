@@ -2,6 +2,9 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at http://bugs.slimdevices.com
 
+1.09	2023-12-20
+	- ape/wavpack: support larger cover art embedded in track file.
+
 1.08	2023-11-29
 	- mpeg-4: Smoothly handle small and ignore empty atoms.
 	- Added Windows build support for Strawberry Perl 32/64-bit.
