@@ -37,6 +37,7 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   unsigned char *last_bptr;
   unsigned int buf_size;
   unsigned int id3_size = 0; // size of leading ID3 data
+  uint32_t song_length_ms = 0;
 
   off_t file_size;           // total file size
   off_t audio_size;          // total size of audio without tags
@@ -227,8 +228,8 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     buffer_append( flac->buf, buffer_ptr(&ogg_buf), pagelen );
     
     if (!full_packet) {
-        buffer_consume( &ogg_buf, pagelen );
-        continue;
+      buffer_consume( &ogg_buf, pagelen );
+      continue;
     } else {
       packets++;
     }   
@@ -294,6 +295,12 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
   my_hv_store( info, "audio_size", newSVuv(audio_size) );
   
   my_hv_store( info, "serial_number", newSVuv(our_serialno) );
+  
+  song_length_ms = SvIV( *( my_hv_fetch(info, "song_length_ms") ) );
+   
+  if (song_length_ms > 0) {
+     my_hv_store( info, "bitrate", newSVuv( _bitrate(audio_size, song_length_ms) ) );
+  } 
 
   // find the last Ogg page
 
@@ -348,13 +355,13 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     if ( granule_pos && flac->samplerate && our_serialno == final_serialno ) {
       // XXX: needs to adjust for initial granule value if file does not start at 0 samples
       int length = (int)(((granule_pos) * 1.0 / flac->samplerate) * 1000);
-      my_hv_store( info, "song_length_ms", newSVuv(length) );
-      my_hv_store( info, "bitrate_average", newSVuv( _bitrate(audio_size, length) ) );
+      if (!song_length_ms) my_hv_store( info, "song_length_ms", newSVuv(length) );
+      my_hv_store( info, "bitrate_ogg", newSVuv( _bitrate(audio_size, length) ) );
 
       DEBUG_TRACE("Using granule_pos %llu / samplerate %d to calculate bitrate/duration\n", granule_pos, flac->samplerate);
       break;
     }
-    if ( seek_position == audio_offset ) {
+    if ( !song_length_ms && seek_position == audio_offset ) {
       DEBUG_TRACE("Packet not found we won't be able to determine the length\n");
       break;
     }
