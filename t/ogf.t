@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 31;
+use Test::More tests => 34;
 
 use Audio::Scan;
 
@@ -60,14 +60,25 @@ eval {
     is( $pic->{width}, 301, 'Width ok' );
 }
 
-# Test scan get info on large vorbis comment
+# Test scan get info on large vorbis comment and 0 offset
 {
 	open my $fh, '<', _f('large-comment.ogf');
 	binmode $fh;
-	my $info = Audio::Scan->find_frame_fh_return_info( ogf => $fh, 0.5 );
+	my $info = Audio::Scan->find_frame_fh_return_info( ogf => $fh, 0 );
 	
 	is( $info->{audio_offset}, 106744, 'Audio offset ok' );
-	is( $info->{seek_offset}, 119881, 'Seek offset ok' );
+	is( $info->{seek_offset}, 106744, 'Seek offset ok' );
+	is( length $info->{seek_header}, 98411, 'Seek header ok' );
+}
+
+# Test scan get info on large vorbis comment and 500 ms offset
+{
+	open my $fh, '<', _f('large-comment.ogf');
+	binmode $fh;
+	my $info = Audio::Scan->find_frame_fh_return_info( ogf => $fh, 500 );
+	
+	is( $info->{audio_offset}, 106744, 'Audio offset ok' );
+	is( $info->{seek_offset}, 192576, 'Seek offset ok' );
 	is( length $info->{seek_header}, 98411, 'Seek header ok' );
 }
 

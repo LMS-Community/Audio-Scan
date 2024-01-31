@@ -559,12 +559,14 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
   buffer_init(&buf, OGG_MAX_PAGE_SIZE + OGG_HEADER_SIZE);
 
   while (high > low) {
-    off_t mid, mid_offset = 0;
+    off_t mid, extend;
     off_t page_start_offset = -1;
     uint32_t cur_serialno;
     int i; // Used by macro CONVERT_INT32LE
-
-    if (high - low > OGG_HEADER_SIZE) {
+    bool inner;
+    
+    // no point dividing the buffer in half if we don't potentially have a full header in each half
+    if (high - low > 2 * OGG_HEADER_SIZE) {
       mid = low + ((high - low) / 2);
     } else {
       mid = low; // Fast-forward search
@@ -578,9 +580,10 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
       goto out;
     }
 
-    for (granule_pos = ULLONG_MAX; granule_pos == ULLONG_MAX && mid + mid_offset < high;)
+    for (granule_pos = ULLONG_MAX, inner = true, extend = 0; granule_pos == ULLONG_MAX && inner;)
     {    
-      if (PerlIO_seek(infile, mid + mid_offset, SEEK_SET) == -1) {
+      // this is where we extend to previous lower side if needed
+      if (PerlIO_seek(infile, mid + extend, SEEK_SET) == -1) {
         frame_offset = -1;
         goto out;
       }
@@ -593,8 +596,11 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
       //
       // To handle this, read OGG_HEADER_SIZE bytes extra after 'high'
       // so that we find the header that starts just before 'high'.
+      // Still, the actual granuler might be in the lower side of
+      // the previous interval, so we need to extend our reach up 
+      // to there if we still have no granule
       if (!_check_buf(infile, &buf, OGG_HEADER_SIZE,
-		      MIN(OGG_MAX_PAGE_SIZE, high - (mid + mid_offset)) + OGG_HEADER_SIZE)) {
+		      MIN(OGG_MAX_PAGE_SIZE, high - mid) + OGG_HEADER_SIZE)) {
         frame_offset = -1;
         goto out;
       }
@@ -603,7 +609,7 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
         if (buf_size < 4) {
           // no page start found, force exit of outer loop            
           DEBUG_TRACE("  no OggS in current buffer\n");
-          mid_offset = high - mid;
+          inner = false;
           break;
         }
 
@@ -616,14 +622,14 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
         granule_pos |= (uint64_t)CONVERT_INT32LE((bptr + 10)) << 32;
         if (granule_pos != ULLONG_MAX) {
           page_start_offset = buffer_len(&buf) - buf_size;
-          frame_offset = mid + mid_offset + page_start_offset;
-          DEBUG_TRACE("  found OggS with offset %d (midofs:%d)", page_start_offset, mid_offset);          
+          frame_offset = mid + page_start_offset;
+          DEBUG_TRACE("  found OggS with offset %d (extend:%d)\n", page_start_offset, extend);          
         } else {
           // if no packet ends here, then this is a full set of segments with 255 bytes each
           uint16_t segments = *(bptr + 26);
           // let's start spot-on
-          mid_offset += OGG_HEADER_SIZE + segments - 1 + segments * 255 + buffer_len(&buf) - buf_size;
-          DEBUG_TRACE("  unusable granule, next page in %hu (midofs:%d, bufsize:%d)\n", segments * 255, mid_offset, buf_size);          
+          extend += OGG_HEADER_SIZE + segments - 1 + segments * 255 + buffer_len(&buf) - buf_size;
+          DEBUG_TRACE("  unusable granule, next page in %hu (extend:%d, bufsize:%d)\n", segments * 255, extend, buf_size);          
         }
 
         break;
@@ -663,7 +669,7 @@ _ogg_binary_search_sample(PerlIO *infile, char *file, HV *info, uint64_t target_
       break;
     }
   }
-
+  
   frame_offset = best_frame_offset;
 
 out:
