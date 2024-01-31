@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 28;
+use Test::More tests => 31;
 
 use Audio::Scan;
 
@@ -20,7 +20,7 @@ eval {
     my $tags = $s->{tags};
 
     is( $info->{audio_offset}, 8498, 'Audio offset ok' );
-    is( $info->{bitrate_average}, 215793, 'Bitrate ok' );
+    is( $info->{bitrate}, 215793, 'Bitrate ok' );
     is( $info->{bits_per_sample}, 16, 'Bits per sample ok' );
     is( $info->{channels}, 2, 'Channels ok' );
     is( $info->{file_size}, 52358, 'File size ok' );
@@ -58,6 +58,17 @@ eval {
     is( $pic->{mime_type}, 'image/jpeg', 'MIME type ok' );
     is( $pic->{picture_type}, 3, 'Picture type ok' );
     is( $pic->{width}, 301, 'Width ok' );
+}
+
+# Test scan get info on large vorbis comment
+{
+	open my $fh, '<', _f('large-comment.ogf');
+	binmode $fh;
+	my $info = Audio::Scan->find_frame_fh_return_info( ogf => $fh, 0.5 );
+	
+	is( $info->{audio_offset}, 106744, 'Audio offset ok' );
+	is( $info->{seek_offset}, 119881, 'Seek offset ok' );
+	is( length $info->{seek_header}, 98411, 'Seek header ok' );
 }
 
 sub _f {

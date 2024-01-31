@@ -15,5 +15,8 @@
  */
 
 int get_ogf_metadata(PerlIO *infile, char *file, HV *info, HV *tags);
-int _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
-static int ogf_find_frame(PerlIO *infile, char *file, int offset);
+int ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info);
+int ogf_find_frame(PerlIO *infile, char *file, int offset);
+
+static int _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
+static int _ogf_find_frame(PerlIO *infile, char *file, int offset, HV *info, HV *tags);
