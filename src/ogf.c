@@ -54,8 +54,8 @@ typedef struct {
 
 uint32_t compute_crc32(uint8_t *data, size_t n);
 
-static int32_t 
-__le32toh__(uint32_t n) 
+static int32_t
+__le32toh__(int32_t n)
 {
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 	return n;
@@ -137,7 +137,7 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     err = -1;
     goto out;
   }
-  
+
   my_hv_store( info, "file_size", newSVuv(file_size) );
 
   if ( !_check_buf(infile, &ogg_buf, 10, OGG_BLOCK_SIZE) ) {
@@ -185,6 +185,7 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
     // check that the first four bytes are 'OggS'
     if ( ogghdr[0] != 'O' || ogghdr[1] != 'g' || ogghdr[2] != 'g' || ogghdr[3] != 'S' ) {
       PerlIO_printf(PerlIO_stderr(), "Not an Ogg file (bad OggS header): %s\n", file);
+      err = -1;
       goto out;
     }
 
@@ -429,9 +430,7 @@ out:
   Safefree(flac->buf);
 
   DEBUG_TRACE("Err %d\n", err);
-  if (err) return err;
-
-  return 0;
+  return err;
 }
 
 int
@@ -490,6 +489,7 @@ out:
 int
 ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
 {
+  int err = -1;
   HV *tags = newHV();
   int frame_offset = _ogf_find_frame(infile, file, offset, info, tags);
 
@@ -499,70 +499,69 @@ ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
     ogg_page_t *page;
     uint32_t audio_offset = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
 
+    // don't understand my mp4.c does not seek here...
     PerlIO_seek(infile, 0, SEEK_SET);
-    buffer_init(&buf, audio_offset);
+    buffer_init(&buf, OGG_MAX_PAGE_SIZE + OGG_HEADER_SIZE);
 
-    _check_buf(infile, &buf, audio_offset, audio_offset);
+    _check_buf(infile, &buf, OGG_MAX_PAGE_SIZE, OGG_MAX_PAGE_SIZE + OGG_HEADER_SIZE);
     page = buffer_ptr(&buf);
-    
+
     DEBUG_TRACE("now reading vorbis commend\n");
-    
+
     // 1st page is 1st packet and with single lacing value
     if (!strncmp(page->ogg.tag, "OggS", 4) && page->type == 0x7f &&
-        !strncmp(page->signature, "FLAC", 4) && !strncmp(page->header.tag, "fLaC", 4)) {     
-        SV* seek_header = newSVpv("", 0);          
+        !strncmp(page->signature, "FLAC", 4) && !strncmp(page->header.tag, "fLaC", 4)) {
+        SV* seek_header = newSVpv("", 0);
         bool done = false;
-        off_t pos;
-            
+        off_t page_len = sizeof(*page);
+
         page->streaminfo.combo[3] &= 0xf0;
         memset(page->streaminfo.sample_count, 0, sizeof(page->streaminfo.sample_count));
         memset(page->streaminfo.md5, 0, sizeof(page->streaminfo.md5));
         page->num_headers = __le32toh__(1);
-        page->ogg.checksum = 0;     
+        page->ogg.checksum = 0;
         page->ogg.checksum = __le32toh__(compute_crc32((uint8_t*) page, sizeof(*page)));
-        
+
         // store the updated OggFlac first packet/page (same in this case)
-        sv_catpvn( seek_header, (char*) buffer_ptr(&buf), sizeof(*page) );
-        pos = sizeof(*page);
-        
+        sv_catpvn( seek_header, (char*) buffer_ptr(&buf), page_len);     
+
         //now we need to keep the 1st page (vorbis comment) and the rest is useless
         do {
-            int i, page_len = 0;
+            int i;
             uint8_t *ptr;
             ogg_header_t *header;
-            
-            PerlIO_seek(infile, pos, SEEK_SET);
-            buffer_clear(&buf);
-            
-            // get a full page, don't need to be cheap
-            _check_buf(infile, &buf, OGG_HEADER_SIZE, OGG_MAX_PAGE_SIZE);
-            header = buffer_ptr(&buf);        
-            
+
+            // replenish what we consumed to that we have a full buffer
+            buffer_consume(&buf, page_len);
+            _check_buf(infile, &buf, page_len, page_len);
+            page_len = 0;
+
+            header = buffer_ptr(&buf);
+
             // make sure this is a page
             if (memcmp(header->tag, "OggS", 4)) {
-                PerlIO_printf(PerlIO_stderr(), "error reading vorbis comment at pos %zu (%s)\n", pos, file);
+                PerlIO_printf(PerlIO_stderr(), "error reading vorbis comment (%s)\n", file);
                 buffer_free(&buf);
-                SvREFCNT_dec(seek_header);                
+                SvREFCNT_dec(seek_header);
                 goto out;
             }
-            
+
             if (header->granule_pos == ULLONG_MAX) {
                 page_len = header->segments * 255;
             } else for (ptr = &header->table, i = 0; i < header->segments && !done; i++, ptr++) {
-                //printf("len %d %d \n", *ptr, page_len);                
                 page_len += *ptr;
                 if (*ptr != 255) done = true;
             }
-                      
+
             page_len += sizeof(*header) + header->segments - 1;
-            pos += page_len;
             sv_catpvn( seek_header, (char*) buffer_ptr(&buf), page_len );
-            DEBUG_TRACE("adding a page of %d segments (pos:%d, page_len:%d)\n", header->segments, pos, page_len);            
+            DEBUG_TRACE("adding a page len:%d of %d segments\n", page_len, header->segments);
         } while (!done);
-        
+
         my_hv_store( info, "seek_header", seek_header );
     }
 
+    err = 1;
     buffer_free(&buf);
   }
 
@@ -571,7 +570,8 @@ out:
   SvREFCNT_dec(tags);
   if (frame_offset != -1) {
     my_hv_store( info, "seek_offset", newSVuv(frame_offset) );
-  }    
+  }
+  return err;
 }
 
 uint32_t crc32_table[] = {
@@ -611,12 +611,12 @@ uint32_t crc32_table[] = {
 
 uint32_t compute_crc32(uint8_t *data, size_t n) {
   uint32_t crc = 0;
-  
+
   while (n--) {
     uint8_t pos = (crc ^ (((uint32_t) *data++) << 24)) >> 24;
     crc = (crc << 8) ^ crc32_table[pos];
   }
-  
+
   return crc;
 }
 
