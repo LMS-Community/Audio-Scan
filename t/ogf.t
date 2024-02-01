@@ -2,7 +2,7 @@ use strict;
 
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 34;
+use Test::More tests => 45;
 
 use Audio::Scan;
 
@@ -78,8 +78,35 @@ eval {
 	my $info = Audio::Scan->find_frame_fh_return_info( ogf => $fh, 500 );
 	
 	is( $info->{audio_offset}, 106744, 'Audio offset ok' );
-	is( $info->{seek_offset}, 192576, 'Seek offset ok' );
+	is( $info->{seek_offset}, 193419, 'Seek offset ok' );
 	is( length $info->{seek_header}, 98411, 'Seek header ok' );
+	
+	close $fh;
+	
+	open $fh, '>', _f('headers.ogf');
+	binmode $fh;
+	print $fh $info->{seek_header};
+	close $fh;
+	
+	my $s = Audio::Scan->scan( _f('headers.ogf') );
+	my $info = $s->{info};
+ 	my $tags = $s->{tags};
+	
+	is( $info->{bits_per_sample}, 16, 'Bits per sample ok' );
+	is( $info->{channels}, 2, 'Channels ok' );
+	is( $info->{maximum_blocksize}, 4096, 'Max blocksize ok' );
+	is( $info->{maximum_framesize}, 16394, 'Max framesize ok' );
+	is( $info->{audio_md5}, '00000000000000000000000000000000', 'MD5 ok' );
+	is( $info->{minimum_blocksize}, 4096, 'Min blocksize ok' );
+	is( $info->{minimum_framesize}, 12572, 'Min framesize ok' );
+	is( $info->{samplerate}, 44100, 'Samplerate ok' );
+	is( $info->{song_length_ms}, 0, 'Song length ok' );
+	is( $info->{total_samples}, 0, 'Total samples ok' );
+
+	is( $tags->{VENDOR}, 'reference libFLAC 1.2.1 20070917', 'VENDOR ok' );
+
+	unlink _f('headers.ogf');
+	
 }
 
 sub _f {

@@ -25,11 +25,10 @@ typedef struct {
         uint64_t granule_pos;
         uint32_t serialno, page_num;
         uint32_t checksum;
-        uint8_t segments, table;
+        uint8_t segments;
 } ogg_header_t;
 
 typedef struct {
-    ogg_header_t ogg;
     uint8_t type;
     char signature[4];
     uint8_t maj;
@@ -49,7 +48,7 @@ typedef struct {
         uint8_t sample_count[4];
         uint8_t md5[16];
     } streaminfo;
-} ogg_page_t;
+} flac_page_t;
 #pragma pack(pop)
 
 uint32_t compute_crc32(uint8_t *data, size_t n);
@@ -496,40 +495,46 @@ ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
   // finally adjust STREAMINFO header
   if (frame_offset >= 0) {
     Buffer buf;
-    ogg_page_t *page;
+    flac_page_t *page;
+    ogg_header_t *header;
     uint32_t audio_offset = SvIV( *(my_hv_fetch( info, "audio_offset" )) );
 
     // don't understand my mp4.c does not seek here...
     PerlIO_seek(infile, 0, SEEK_SET);
     buffer_init(&buf, OGG_MAX_PAGE_SIZE + OGG_HEADER_SIZE);
 
+    // there is only one segment in header
     _check_buf(infile, &buf, OGG_MAX_PAGE_SIZE, OGG_MAX_PAGE_SIZE + OGG_HEADER_SIZE);
-    page = buffer_ptr(&buf);
+    header = buffer_ptr(&buf);
+    page = buffer_ptr(&buf) + sizeof(*header) + 1;
 
-    DEBUG_TRACE("now reading vorbis commend\n");
+    DEBUG_TRACE("now reading vorbis comment\n");
 
     // 1st page is 1st packet and with single lacing value
-    if (!strncmp(page->ogg.tag, "OggS", 4) && page->type == 0x7f &&
+    if (!strncmp(header->tag, "OggS", 4) && page->type == 0x7f &&
         !strncmp(page->signature, "FLAC", 4) && !strncmp(page->header.tag, "fLaC", 4)) {
         SV* seek_header = newSVpv("", 0);
+        int page_count = 0;
         bool done = false;
-        off_t page_len = sizeof(*page);
+        off_t page_len = sizeof(*header) + 1 + sizeof(*page);
 
         page->streaminfo.combo[3] &= 0xf0;
         memset(page->streaminfo.sample_count, 0, sizeof(page->streaminfo.sample_count));
         memset(page->streaminfo.md5, 0, sizeof(page->streaminfo.md5));
-        page->num_headers = __le32toh__(1);
-        page->ogg.checksum = 0;
-        page->ogg.checksum = __le32toh__(compute_crc32((uint8_t*) page, sizeof(*page)));
+        page->num_headers = 1;
+#if (__BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__)
+        page->num_headers <<= 8;
+#endif        
+        header->checksum = 0;
+        header->checksum = __le32toh__(compute_crc32(buffer_ptr(&buf), page_len));
 
         // store the updated OggFlac first packet/page (same in this case)
-        sv_catpvn( seek_header, (char*) buffer_ptr(&buf), page_len);     
+        sv_catpvn( seek_header, (char*) buffer_ptr(&buf), page_len);   
 
-        //now we need to keep the 1st page (vorbis comment) and the rest is useless
+        // now we need to keep the 1st page (vorbis comment) and the rest is useless
         do {
             int i;
             uint8_t *ptr;
-            ogg_header_t *header;
 
             // replenish what we consumed to that we have a full buffer
             buffer_consume(&buf, page_len);
@@ -537,7 +542,8 @@ ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
             page_len = 0;
 
             header = buffer_ptr(&buf);
-
+            ptr = buffer_ptr(&buf) + sizeof(*header) + 1;
+            
             // make sure this is a page
             if (memcmp(header->tag, "OggS", 4)) {
                 PerlIO_printf(PerlIO_stderr(), "error reading vorbis comment (%s)\n", file);
@@ -548,14 +554,24 @@ ogf_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info)
 
             if (header->granule_pos == ULLONG_MAX) {
                 page_len = header->segments * 255;
-            } else for (ptr = &header->table, i = 0; i < header->segments && !done; i++, ptr++) {
+            } else for (ptr = buffer_ptr(&buf) + sizeof(*header), i = 0; i < header->segments && !done; i++, ptr++) {
                 page_len += *ptr;
                 if (*ptr != 255) done = true;
-            }
+            }         
 
-            page_len += sizeof(*header) + header->segments - 1;
+            page_len += sizeof(*header) + header->segments;
+            
+            // this is the last flac header, need to to set VORBIS_COMMENT as last header and update crc
+            if (page_count++ == 0) {
+                ptr = buffer_ptr(&buf) + sizeof(*header) + header->segments;
+                *ptr = 0x80 | FLAC_TYPE_VORBIS_COMMENT;
+                header->checksum = 0;
+                header->checksum = __le32toh__(compute_crc32(buffer_ptr(&buf), page_len));
+                DEBUG_TRACE("found vorbis comment header\n", page_len, header->segments);
+            }
+            
             sv_catpvn( seek_header, (char*) buffer_ptr(&buf), page_len );
-            DEBUG_TRACE("adding a page len:%d of %d segments\n", page_len, header->segments);
+            DEBUG_TRACE("adding page %d of len:%d with %d segments\n", page_count, page_len, header->segments);
         } while (!done);
 
         my_hv_store( info, "seek_header", seek_header );
