@@ -358,6 +358,8 @@ _ogf_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking)
 
 #define BUF_SIZE 8500 // from vlc
 
+  if (file_size < audio_offset + OGG_HEADER_SIZE) goto out;
+  
   seek_position = file_size - BUF_SIZE;
   while (1) {
     if ( seek_position < audio_offset ) {
@@ -635,5 +637,3 @@ uint32_t compute_crc32(uint8_t *data, size_t n) {
 
   return crc;
 }
-
-
