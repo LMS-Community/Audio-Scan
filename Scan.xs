@@ -217,7 +217,7 @@ _generate_hash(const char *file)
 MODULE = Audio::Scan		PACKAGE = Audio::Scan
 
 HV *
-_scan( char *, char *suffix, PerlIO *infile, SV *path, int filter, int md5_size, int md5_offset )
+_scan( char *dummy, char *suffix, PerlIO *infile, SV *path, int filter, int md5_size, int md5_offset )
 CODE:
 {
   taghandler *hdl;
@@ -269,7 +269,7 @@ OUTPUT:
   RETVAL
   
 int
-_find_frame( char *, char *suffix, PerlIO *infile, SV *path, int offset )
+_find_frame( char *dummy, char *suffix, PerlIO *infile, SV *path, int offset )
 CODE:
 {
   taghandler *hdl;
@@ -285,7 +285,7 @@ OUTPUT:
   RETVAL
 
 HV *
-_find_frame_return_info( char *, char *suffix, PerlIO *infile, SV *path, int offset )
+_find_frame_return_info( char *dummy, char *suffix, PerlIO *infile, SV *path, int offset )
 CODE:
 {
   taghandler *hdl = _get_taghandler(suffix);
@@ -309,7 +309,7 @@ OUTPUT:
   RETVAL
 
 int
-is_supported(char *, SV *path)
+is_supported(char *dummy, SV *path)
 CODE:
 {
   char *suffix = strrchr( SvPVX(path), '.' );
@@ -325,7 +325,7 @@ OUTPUT:
   RETVAL
 
 SV *
-type_for(char *, SV *suffix)
+type_for(char *dummy, SV *suffix)
 CODE:
 {
   taghandler *hdl = NULL;
@@ -363,7 +363,7 @@ OUTPUT:
   RETVAL
 
 AV *
-extensions_for(char *, SV *type)
+extensions_for(char *dummy, SV *type)
 CODE:
 {
   int i, j;
