@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 399;
+use Test::More tests => 400;
 use Test::Warn;
 
 use Audio::Scan;
@@ -507,6 +507,16 @@ eval {
 
     # XXX: 2 WOAR frames
 }
+
+# ID3v2.4 UTF-8 with GRP1
+{
+    my $s = Audio::Scan->scan_tags( _f('v2.4-utf8-grp1.mp3') );
+
+    my $tags = $s->{tags};
+
+    is( $tags->{GRP1}, 'Last Embrace', 'ID3v2.4 GRP1 ok' );
+}
+
 
 # ID3v2.4 with negative RVA2
 {

@@ -1,7 +1,9 @@
 Revision history for Audio::Scan
 
-1.11    2025-09-12
+1.11    2025-09-18
         - fix compatibility with Perl 5.42
+	- mp3: fix odd reported bitrates for certain files.
+	- added support for ID3v2.4 GRP1 frame.
 
 1.10	2024-02-29
 	- ogg/flac: add support for ogf file format.
