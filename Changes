@@ -1,6 +1,8 @@
 Revision history for Audio::Scan
 
-1.11    2025-09-18
+Note: Bug numbers refer to bugs at https://bugs-archive.lyrion.org/index.html
+
+1.11    2025-09-20
         - fix compatibility with Perl 5.42
 	- mp3: fix odd reported bitrates for certain files.
 	- added support for ID3v2.4 GRP1 frame.
