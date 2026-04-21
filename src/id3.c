@@ -815,11 +815,10 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
       // (T|W)XXX frames don't support multiple strings separated by nulls, even in v2.4
 
       // Only one tag per unique key value is allowed, that's why there is no array support here
-      if (value != NULL && SvPOK(value) && sv_len(value)) {
+      if (value != NULL && SvPOK(value)) {
         my_hv_store_ent( id3->tags, key, value );
       }
       else {
-        my_hv_store_ent( id3->tags, key, &PL_sv_undef );
         if (value) SvREFCNT_dec(value);
       }
     }
