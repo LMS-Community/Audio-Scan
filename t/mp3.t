@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 400;
+use Test::More tests => 401;
 use Test::Warn;
 
 use Audio::Scan;
@@ -476,6 +476,27 @@ eval {
         my $title = Encode::decode_utf8("花火");
         is( $tags->{TIT2}, $title, 'ID3v2.3 corrupted title ok' );
     }
+}
+
+# ID3v2 (general) complex TXXX edge case (github PR #10 in lms-community 
+# fork):
+# If there is a TXXX with a zero-length value AND the key for that TXXXX
+# collides with the code for an array-valued ID3v2 frame AND an instance
+# of that frame is also in the ID3v2 tag, versions before 1.11 segfaulted.
+{
+	my $segfaulted = 0;
+	eval {
+		local $SIG{SEGV} = sub {
+			$segfaulted = 1;
+			die();
+		};
+
+		Audio::Scan->scan( _f('v2.3-zero-length-txxx.mp3') );
+	};
+	
+	# Don't crash, please.  If we did, $segfaulted will be set to 1.
+	
+	ok(!$segfaulted, "TXXX key collision with array-valued frame");
 }
 
 # ID3v2.4
