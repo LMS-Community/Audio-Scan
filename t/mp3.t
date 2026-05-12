@@ -3,7 +3,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 use File::Spec::Functions;
 use FindBin ();
-use Test::More tests => 401;
+use Test::More tests => 413;
 use Test::Warn;
 
 use Audio::Scan;
@@ -1372,6 +1372,39 @@ eval {
 
     is( $tags->{TALB}, 'Laundry Service', 'bad APE tag ID3 TALB ok' );
     is( $tags->{MP3GAIN_MINMAX}, '123,203', 'bad APE tag MP3GAIN_MINMAX ok' );
+}
+
+# Multi-value TXXX frames (ID3v2.4 null-separated values)
+{
+    my $s = Audio::Scan->scan( _f('v2.4-txxx-multivalue.mp3') );
+    my $tags = $s->{tags};
+
+    is( ref $tags->{ALBUMARTISTS}, 'ARRAY', 'ID3v2.4 multi-value TXXX returns arrayref' );
+    is( $tags->{ALBUMARTISTS}->[0], 'Artist1', 'ID3v2.4 multi-value TXXX value 1 ok' );
+    is( $tags->{ALBUMARTISTS}->[1], 'Artist2', 'ID3v2.4 multi-value TXXX value 2 ok' );
+    is( ref $tags->{ARTISTS}, 'ARRAY', 'ID3v2.4 multi-value TXXX ARTISTS returns arrayref' );
+    is( $tags->{ARTISTS}->[0], 'TrackArtist1', 'ID3v2.4 multi-value TXXX ARTISTS value 1 ok' );
+    is( $tags->{ARTISTS}->[1], 'TrackArtist2', 'ID3v2.4 multi-value TXXX ARTISTS value 2 ok' );
+}
+
+# Multi-value TXXX with 3 values
+{
+    my $s = Audio::Scan->scan( _f('v2.4-txxx-multivalue-3.mp3') );
+    my $tags = $s->{tags};
+
+    is( ref $tags->{ALBUMARTISTS}, 'ARRAY', 'ID3v2.4 3-value TXXX returns arrayref' );
+    is( scalar @{$tags->{ALBUMARTISTS}}, 3, 'ID3v2.4 3-value TXXX has 3 elements' );
+    is( $tags->{ALBUMARTISTS}->[2], 'Artist3', 'ID3v2.4 3-value TXXX value 3 ok' );
+}
+
+# Multi-value TXXX with empty slot (tagger bug)
+{
+    my $s = Audio::Scan->scan( _f('v2.4-txxx-multivalue-empty.mp3') );
+    my $tags = $s->{tags};
+
+    is( ref $tags->{ALBUMARTISTS}, 'ARRAY', 'ID3v2.4 TXXX with empty slot returns arrayref' );
+    is( scalar @{$tags->{ALBUMARTISTS}}, 2, 'ID3v2.4 TXXX empty slot is skipped' );
+    is( $tags->{ALBUMARTISTS}->[1], 'Artist3', 'ID3v2.4 TXXX value after empty slot ok' );
 }
 
 sub _f {

@@ -798,24 +798,50 @@ _id3_parse_v2_frame_data(id3info *id3, char const *id, uint32_t size, id3_framet
     // Read key and uppercase it
     SV *key   = NULL;
     SV *value = NULL;
+    AV *array = NULL;
+    int count = 0;
 
     read += _id3_get_utf8_string(id3, &key, size - read, encoding);
 
     if (key != NULL && SvPOK(key) && sv_len(key)) {
       upcase(SvPVX(key));
 
-      // Read value
+      // Read value(s)
       if (frametype->fields[2] == ID3_FIELD_TYPE_LATIN1) {
         // WXXX frames have a latin1 value field regardless of encoding byte
         encoding = ISO_8859_1;
       }
 
-      read += _id3_get_utf8_string(id3, &value, size - read, encoding);
+      // ID3v2.4 allows multiple null-separated strings in TXXX value field.
+      // Loop mirrors the STRINGLIST handler for standard T* frames.
+      while (read < size) {
+        if (count++ == 1 && value != NULL) {
+          array = newAV();
+          av_push(array, value);
+        }
+        value = NULL;
 
-      // (T|W)XXX frames don't support multiple strings separated by nulls, even in v2.4
+        read += _id3_get_utf8_string(id3, &value, size - read, encoding);
 
-      // Only one tag per unique key value is allowed, that's why there is no array support here
-      if (value != NULL && SvPOK(value)) {
+        if (array != NULL && value != NULL && SvPOK(value)) {
+          // Bug 16452, do not add an empty string
+          if (sv_len(value) > 0)
+            av_push(array, value);
+        }
+      }
+
+      if (array != NULL) {
+        if (av_len(array) == 0) {
+          // Multiple strings but only one non-empty: collapse to scalar
+          my_hv_store_ent( id3->tags, key, av_shift(array) );
+          SvREFCNT_dec(array);
+        }
+        else {
+          my_hv_store_ent( id3->tags, key, newRV_noinc( (SV *)array ) );
+        }
+        array = NULL;
+      }
+      else if (value != NULL && SvPOK(value)) {
         my_hv_store_ent( id3->tags, key, value );
       }
       else {
