@@ -56,7 +56,7 @@ typedef struct {
   char*	type;
   int (*get_tags)(PerlIO *infile, char *file, HV *info, HV *tags);
   int (*get_fileinfo)(PerlIO *infile, char *file, HV *tags);
-  int (*find_frame)(PerlIO *infile, char *file, int offset);
+  off_t (*find_frame)(PerlIO *infile, char *file, int offset);
   int (*find_frame_return_info)(PerlIO *infile, char *file, int offset, HV *info);
 } taghandler;
 
