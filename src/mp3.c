@@ -903,7 +903,7 @@ out:
   return mp3;
 }
 
-int
+off_t
 mp3_find_frame(PerlIO *infile, char *file, int offset)
 {
   Buffer mp3_buf;
