@@ -434,7 +434,7 @@ out:
   return err;
 }
 
-int
+off_t
 ogf_find_frame(PerlIO *infile, char *file, int offset)
 {
   HV *info = newHV();
