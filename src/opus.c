@@ -349,7 +349,7 @@ out:
   return 0;
 }
 
-static int
+static off_t
 opus_find_frame(PerlIO *infile, char *file, int offset)
 {
   int frame_offset = -1;
