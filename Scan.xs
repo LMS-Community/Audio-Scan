@@ -268,7 +268,7 @@ CODE:
 OUTPUT:
   RETVAL
   
-int
+off_t
 _find_frame( char *dummy, char *suffix, PerlIO *infile, SV *path, int offset )
 CODE:
 {
