@@ -455,7 +455,7 @@ out:
   return frame_offset;
 }
 
-static int
+static off_t
 _ogf_find_frame(PerlIO *infile, char *file, int offset, HV *info, HV *tags)
 {
   int frame_offset = -1;
