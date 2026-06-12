@@ -27,7 +27,7 @@ get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags)
 }
 
 // wrapper to return just the file offset
-int
+off_t
 mp4_find_frame(PerlIO *infile, char *file, int offset)
 {
   HV *info = newHV();

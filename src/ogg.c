@@ -500,7 +500,7 @@ _parse_vorbis_comments(PerlIO *infile, Buffer *vorbis_buf, HV *tags, int has_fra
   }
 }
 
-static int
+static off_t
 ogg_find_frame(PerlIO *infile, char *file, int offset)
 {
   int frame_offset = -1;

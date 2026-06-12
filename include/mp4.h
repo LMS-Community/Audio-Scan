@@ -123,7 +123,7 @@ typedef struct mp4info {
 } mp4info;
 
 static int get_mp4tags(PerlIO *infile, char *file, HV *info, HV *tags);
-int mp4_find_frame(PerlIO *infile, char *file, int offset);
+off_t mp4_find_frame(PerlIO *infile, char *file, int offset);
 int mp4_find_frame_return_info(PerlIO *infile, char *file, int offset, HV *info);
 
 mp4info * _mp4_parse(PerlIO *infile, char *file, HV *info, HV *tags, uint8_t seeking);
