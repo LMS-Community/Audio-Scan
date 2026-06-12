@@ -2,6 +2,10 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at https://bugs-archive.lyrion.org/index.html
 
+1.13	2026-06-12
+	- ID3: Support multi-value TXXX/WXXX frames.
+	- Add support for files larger than 2GB.
+
 1.12	2026-04-22
 	- ID3: Never add undef to tag hash for empty or invalid TXXX key.
 
