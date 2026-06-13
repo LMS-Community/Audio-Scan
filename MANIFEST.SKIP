@@ -44,3 +44,6 @@ t/mp3/ext
 # https://weblog.bulknews.net/stop-shipping-mymeta-to-cpan-b92215a227f6
 ^MYMETA\.yml$
 ^MYMETA\.json$
+
+# No need in the package
+.github/workflows/build\.yaml
