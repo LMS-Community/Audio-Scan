@@ -908,7 +908,7 @@ and adapted by Netgear.  It has been heavily rewritten to fix bugs and add
 more features.
 
 The source to the original Netgear C scanner for SqueezeCenter is located
-at L<http://svn.slimdevices.com/repos/slim/7.3/trunk/platforms/readynas/contrib/scanner>
+at L<https://github.com/LMS-Community/slimserver-platforms/tree/public/8.5/readynas/contrib/scanner>
 
 The audio MD5 feature uses an MD5 implementation by L. Peter Deutsch,
 E<lt>ghost@aladdin.comE<gt>.
