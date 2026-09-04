@@ -62,4 +62,17 @@ WriteMakefile(
             },
         },
     },
+    dist  => {
+        PREOP => q(\
+            set -o errexit; \
+            pod2gfm --force $(VERSION_FROM) README.md; \
+            git status --porcelain README.md \
+                | ( \
+                    if grep -F .; then \
+                        echo 'Uncommitted generated files (listed above)'; \
+                        exit 1; \
+                    fi; \
+                ); \
+        ),
+    },
 );
