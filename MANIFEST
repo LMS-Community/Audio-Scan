@@ -5,6 +5,7 @@ COPYING.buffer
 COPYING.mpc
 COPYING.pinttypes
 COPYING.pstdint
+cpanfile
 include/aac.h
 include/ape.h
 include/asf.h
