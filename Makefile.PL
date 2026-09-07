@@ -1,18 +1,16 @@
 use strict;
-
+use warnings;
 use ExtUtils::MakeMaker 6.46 qw(WriteMakefile);
-use File::Spec::Functions;
-use Getopt::Long;
 
 my (@CCFLAGS, @INC, @LIBS);
 
 push @INC, '-Iinclude', '-Isrc';
 if( $^O eq 'MSWin32' ) {
-push @LIBS, '-Lwin32/ -lzlib';
+    push @LIBS, '-Lwin32/ -lzlib';
 }
 else {
-push @CCFLAGS, '-Wdeclaration-after-statement';
-push @LIBS, '-lz';
+    push @CCFLAGS, '-Wdeclaration-after-statement';
+    push @LIBS, '-lz';
 }
 
 my $inc_files = join(' ', glob 'include/*.h');
@@ -40,5 +38,28 @@ WriteMakefile(
             'open_source', # buffer.c (SPDX id: SSH-OpenSSH)
             'zlib',        # include/md5.h src/md5.c
         ],
+        'meta-spec' => {
+            version => 2,
+            url => 'https://metacpan.org/pod/CPAN::Meta::Spec',
+        },
+        resources => {
+            homepage => 'https://github.com/LMS-Community/Audio-Scan/',
+            license => [
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING',
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING.ape',
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING.buffer',
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING.mpc',
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING.pinttypes',
+              'https://raw.githubusercontent.com/LMS-Community/Audio-Scan/refs/heads/master/COPYING.pstdint',
+            ],
+            bugtracker => {
+                web => 'https://github.com/LMS-Community/Audio-Scan/issues',
+            },
+            repository => {
+                url => 'https://github.com/LMS-Community/Audio-Scan.git',
+                web => 'https://github.com/LMS-Community/Audio-Scan/',
+                type => 'git',
+            },
+        },
     },
 );
