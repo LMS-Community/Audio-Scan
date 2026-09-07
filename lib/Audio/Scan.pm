@@ -205,8 +205,8 @@ determined by the file's extension.  Supported extensions are:
     MP3:  mp3, mp2
     MP4:  mp4, m4a, m4b, m4p, m4v, m4r, k3g, skm, 3gp, 3g2, mov
     AAC (ADTS): aac
-    Ogg:  ogg, oga
-    FLAC: flc, flac, fla
+    Ogg:  ogg, oga, ogf
+    FLAC: flc, flac, fla, ogf
     ASF:  wma, wmv, asf
     Musepack:  mpc, mpp, mp+
     Monkey's Audio:  ape, apl
@@ -578,7 +578,7 @@ The following metadata about a file is returned:
 
 Raw Vorbis comments are returned.  All comment keys are capitalized.
 
-=head1 FLAC
+=head1 FLAC or OggFLAC
 
 =head2 INFO
 
@@ -587,6 +587,7 @@ The following metadata about a file is returned:
     channels
     samplerate (in kHz)
     bitrate (in bps)
+    bitrage_ogg (in bps, calculate from ogg frames)
     file_size
     audio_offset (byte offset to first audio frame)
     audio_size
