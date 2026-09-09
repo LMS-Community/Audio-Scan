@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use ExtUtils::MakeMaker 6.46 qw(WriteMakefile);
+use ExtUtils::MakeMaker::CPANfile;
 
 my (@CCFLAGS, @INC, @LIBS);
 
@@ -19,8 +19,6 @@ my $src_files = join(' ', glob 'src/*.c');
 WriteMakefile(
     NAME              => 'Audio::Scan',
     VERSION_FROM      => 'lib/Audio/Scan.pm',
-    CONFIGURE_REQUIRES => { 'ExtUtils::MakeMaker' => 6.46 },
-    PREREQ_PM         => { 'Test::Warn' => 0 },
     ABSTRACT_FROM     => 'lib/Audio/Scan.pm',
     AUTHOR            => 'Andy Grundman <andy@hybridized.org>',
     CCFLAGS           => "$Config::Config{ccflags} " . join(' ', @CCFLAGS),
@@ -61,5 +59,18 @@ WriteMakefile(
                 type => 'git',
             },
         },
+    },
+    dist  => {
+        PREOP => q(\
+            set -o errexit; \
+            pod2gfm --force $(VERSION_FROM) README.md; \
+            git status --porcelain README.md \
+                | ( \
+                    if grep -F .; then \
+                        echo 'Uncommitted generated files (listed above)'; \
+                        exit 1; \
+                    fi; \
+                ); \
+        ),
     },
 );

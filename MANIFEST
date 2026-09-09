@@ -5,6 +5,7 @@ COPYING.buffer
 COPYING.mpc
 COPYING.pinttypes
 COPYING.pstdint
+cpanfile
 include/aac.h
 include/ape.h
 include/asf.h
@@ -30,7 +31,7 @@ include/wavpack.h
 lib/Audio/Scan.pm
 Makefile.PL
 MANIFEST			This list of files
-README
+README.md
 README.win32
 Scan.xs
 src/aac.c
