@@ -2,8 +2,10 @@ Revision history for Audio::Scan
 
 Note: Bug numbers refer to bugs at https://bugs-archive.lyrion.org/index.html
 
-1.14	2026-06-26
+1.14	2026-10-21
 	- mp4: fix atom validation to avoid ignoring entire file.
+	- cpan: We are now the CPAN Audio::Scan repository. The original
+      https://github.com/andygrundman/Audio-Scan has been archived.
 
 1.13	2026-06-12
 	- ID3: Support multi-value TXXX/WXXX frames.
