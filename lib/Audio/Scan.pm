@@ -587,7 +587,7 @@ The following metadata about a file is returned:
     channels
     samplerate (in kHz)
     bitrate (in bps)
-    bitrage_ogg (in bps, calculate from ogg frames)
+    bitrate_ogg (in bps, calculate from ogg frames)
     file_size
     audio_offset (byte offset to first audio frame)
     audio_size
