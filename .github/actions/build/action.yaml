@@ -1,0 +1,28 @@
+name: Build and Test
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+
+    - name: Regular tests
+      shell: bash
+      run: |
+        cpanm --installdeps --notest .
+        perl Makefile.PL
+        make
+        make test
+
+    - name: Prepare for release tests
+      shell: bash
+      run: |
+        cpanm --installdep .
+        cpanm --notest Test::CheckManifest Test::Pod::Coverage Pod::Coverage Test::Pod
+
+    - name: Release tests
+      shell: bash
+      env:
+        RELEASE_TESTING: 1
+      run: |
+        perl Makefile.PL
+        make
+        make test
