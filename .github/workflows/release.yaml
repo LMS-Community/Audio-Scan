@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  release:
+    types: released
+
+jobs:
+  release:
+    name: Build and release to CPAN
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        perl-version:
+          - '5.42'
+
+    container:
+      # https://hub.docker.com/r/perldocker/perl-tester
+      image: perldocker/perl-tester:${{ matrix.perl-version }}
+
+    steps:
+      - uses: $/.github/actions/build
+
+      - name: Create distribution
+        run: |
+          cpanm --installdeps --with-develop --notest .
+          make dist
+
+      - name: Upload to CPAN
+        run: |
+          cpanm --notest CPAN::Uploader
+          perl -E 'print $ENV{q(PAUSE_PASSWORD)}' \
+            | cpan-upload --user="$PAUSE_USERNAME" \
+                          "Audio-Scan-$GITHUB_REF_NAME.tar.gz"
+        env:
+          PAUSE_USERNAME: ${{ secrets.pause_username }}
+          PAUSE_PASSWORD: ${{ secrets.pause_password }}

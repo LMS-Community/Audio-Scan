@@ -25,24 +25,4 @@ jobs:
 
     name: Perl ${{ matrix.perl-version }}
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Regular tests
-        run: |
-            cpanm --installdeps --notest .
-            perl Makefile.PL
-            make
-            make test
-
-      - name: Prepare for release tests
-        run: |
-            cpanm --installdep .
-            cpanm --notest Test::CheckManifest Test::Pod::Coverage Pod::Coverage Test::Pod
-
-      - name: Release tests
-        env:
-          RELEASE_TESTING: 1
-        run: |
-            perl Makefile.PL
-            make
-            make test
+      - uses: $/.github/actions/build
